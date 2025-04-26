@@ -69,7 +69,7 @@ translations = {
         "years": "贷款期限 (年)",
         "fees_section": "法律费用及成本",
         "stamp_duty": "印花税及其他法律费用 (可修改)",
-        "consent": "同意费 (MYR)",
+        "consent": "外国人购买许可费 (MYR)",
         "legal": "贷款文件法律费用 (MYR)",
         "cash_section": "现金需求",
         "min_bal": "最低银行余额要求 (MYR)",
