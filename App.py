@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import requests
 
+# --- Page Config ---
+st.set_page_config(page_title="Investment Property P&L Calculator", layout="centered")
+
 # --- Language Toggle ---
 language = st.selectbox("Choose Language / 选择语言", ["English", "中文"], index=0)
 
@@ -90,44 +93,53 @@ t = text[language]
 st.title(t["title"])
 
 # --- FX Section ---
-st.subheader(t["currency_section"])
-manual_fx = st.checkbox(t["manual_fx"])
-if manual_fx:
-    fx_rate = st.number_input(t["enter_fx"], value=0.31)
-else:
-    try:
-        res = requests.get("https://api.exchangerate.host/latest?base=MYR&symbols=NZD")
-        fx_rate = res.json()["rates"]["NZD"]
-    except:
-        st.error("FX API Error, using default 0.31")
-        fx_rate = 0.31
+with st.expander(t["currency_section"], expanded=True):
+    manual_fx = st.checkbox(t["manual_fx"])
+    if manual_fx:
+        fx_rate = st.number_input(t["enter_fx"], value=0.31)
+    else:
+        try:
+            res = requests.get("https://api.exchangerate.host/latest?base=MYR&symbols=NZD")
+            fx_rate = res.json()["rates"]["NZD"]
+        except:
+            st.error("FX API Error, using default 0.31")
+            fx_rate = 0.31
 
-# --- Property Inputs ---
-st.subheader(t["property_section"])
-spa_price = st.number_input(t["spa_price"], value=800000)
-discount1 = st.number_input(t["discount1"], value=10.0)
-discount2 = st.number_input(t["discount2"], value=5.0)
-discount3 = st.number_input(t["discount3"], value=0)
-deposit_paid = st.number_input(t["deposit_paid"], value=10000)
-loan_ratio = st.number_input(t["loan_ratio"], value=70.0)
-interest = st.number_input(t["interest_rate"], value=5.0)
-years = st.number_input(t["loan_term"], value=25)
+# --- Property Section ---
+with st.expander(t["property_section"], expanded=True):
+    spa_price = st.number_input(t["spa_price"], value=800000)
+    col1, col2 = st.columns(2)
+    with col1:
+        discount1 = st.number_input(t["discount1"], value=10.0)
+    with col2:
+        discount2 = st.number_input(t["discount2"], value=5.0)
+    discount3 = st.number_input(t["discount3"], value=0)
+    deposit_paid = st.number_input(t["deposit_paid"], value=10000)
+    loan_ratio = st.number_input(t["loan_ratio"], value=70.0)
+    col3, col4 = st.columns(2)
+    with col3:
+        interest = st.number_input(t["interest_rate"], value=5.0)
+    with col4:
+        years = st.number_input(t["loan_term"], value=25)
 
-# --- Upfront Costs ---
-st.subheader(t["upfront_fees"])
-default_stamp = round(spa_price * 0.005, 2)
-stamp_duty = st.number_input(t["stamp_duty"], value=default_stamp)
-consent = st.number_input(t["consent_fee"], value=1000)
-legal = st.number_input(t["legal_fees"], value=3000)
-min_bal = st.number_input(t["min_bank_balance"], value=5000)
-cushion = st.number_input(t["cushion"], value=10000)
-renov = st.number_input(t["renovation"], value=15000)
+# --- Upfront Costs Section ---
+with st.expander(t["upfront_fees"], expanded=False):
+    default_stamp = round(spa_price * 0.005, 2)
+    stamp_duty = st.number_input(t["stamp_duty"], value=default_stamp)
+    consent = st.number_input(t["consent_fee"], value=1000)
+    legal = st.number_input(t["legal_fees"], value=3000)
+    min_bal = st.number_input(t["min_bank_balance"], value=5000)
+    cushion = st.number_input(t["cushion"], value=10000)
+    renov = st.number_input(t["renovation"], value=15000)
 
-# --- Rental Estimation ---
-st.subheader(t["rental_income"])
-rate = st.number_input(t["airbnb_rate"], value=150)
-util = st.number_input(t["utilisation_rate"], value=60.0)
-mgmt = st.number_input(t["mgmt_fee"], value=500)
+# --- Rental Estimation Section ---
+with st.expander(t["rental_income"], expanded=False):
+    rate = st.number_input(t["airbnb_rate"], value=150)
+    utilisation_col, mgmt_col = st.columns(2)
+    with utilisation_col:
+        util = st.number_input(t["utilisation_rate"], value=60.0)
+    with mgmt_col:
+        mgmt = st.number_input(t["mgmt_fee"], value=500)
 
 # --- Calculate Button ---
 if st.button(t["calculate"]):
@@ -147,28 +159,28 @@ if st.button(t["calculate"]):
 
         # --- Results ---
         st.subheader(t["results"])
-        st.metric(t["net_net_price"], f\"{net_price:,.2f} MYR\")
-        st.metric(t["max_loan"], f\"{max_loan:,.2f} MYR\")
-        st.metric(t["cash_deposit"], f\"{cash_deposit:,.2f} MYR\")
-        st.metric(t["monthly_repayment"], f\"{monthly_repay:,.2f} MYR\")
-        st.metric(t["total_cash_required"], f\"{total_cash:,.2f} MYR\")
-        st.metric(t["gross_rent"], f\"{gross_rent:,.2f} MYR\")
-        st.metric(t["net_rent"], f\"{net_rent:,.2f} MYR\")
-        st.metric(t["monthly_profit"], f\"{profit:,.2f} MYR\")
+        st.metric(t["net_net_price"], f"{net_price:,.2f} MYR")
+        st.metric(t["max_loan"], f"{max_loan:,.2f} MYR")
+        st.metric(t["cash_deposit"], f"{cash_deposit:,.2f} MYR")
+        st.metric(t["monthly_repayment"], f"{monthly_repay:,.2f} MYR")
+        st.metric(t["total_cash_required"], f"{total_cash:,.2f} MYR")
+        st.metric(t["gross_rent"], f"{gross_rent:,.2f} MYR")
+        st.metric(t["net_rent"], f"{net_rent:,.2f} MYR")
+        st.metric(t["monthly_profit"], f"{profit:,.2f} MYR")
 
         # --- Download as Excel ---
         df = pd.DataFrame({
-            \"Category\": [
+            "Category": [
                 t["net_net_price"], t["max_loan"], t["cash_deposit"],
                 t["monthly_repayment"], t["total_cash_required"],
                 t["gross_rent"], t["net_rent"], t["monthly_profit"]
             ],
-            \"MYR Amount\": [
+            "MYR Amount": [
                 net_price, max_loan, cash_deposit, monthly_repay,
                 total_cash, gross_rent, net_rent, profit
             ]
         })
-        st.download_button(t["download_excel"], df.to_csv(index=False), \"results.csv\")
+        st.download_button(t["download_excel"], df.to_csv(index=False), "results.csv")
 
 # --- Reset Button ---
 if st.button(t["reset"]):
