@@ -83,6 +83,18 @@ t = text[language]
 # --- 应用标题 ---
 st.title(t["title"])
 
+# Optional: remove Streamlit's top padding for mobile
+st.markdown(
+    """
+    <style>
+    .block-container {
+        padding-top: 1rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # --- 货币与汇率设置 ---
 st.subheader(t["currency_section"])
 manual_fx = st.checkbox(t["manual_fx"])
