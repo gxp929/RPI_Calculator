@@ -1,10 +1,12 @@
 import streamlit as st
+import pandas as pd
 import requests
+from io import BytesIO
 
-# --- 语言选择 / Language Toggle ---
+# --- Language Toggle ---
 language = st.selectbox("Choose Language / 选择语言", ["English", "中文"], index=0)
 
-# --- 文本字典 / Text Dictionary ---
+# --- Text Dictionary ---
 text = {
     "English": {
         "title": "Investment Property P&L Model",
@@ -32,6 +34,7 @@ text = {
         "utilisation_rate": "Utilisation Rate (%)",
         "mgmt_fee": "Airbnb Management Fee (Monthly MYR)",
         "results": "Results",
+        "calculate": "Calculate",
         "net_net_price": "Net Net Price",
         "max_loan": "Maximum Loan Amount (70%)",
         "cash_deposit": "Cash Deposit (after loan)",
@@ -39,7 +42,8 @@ text = {
         "total_cash_required": "Total Cash Required (including all costs)",
         "gross_rent": "Gross Rental Income (Monthly)",
         "net_rent": "Net Rental Income (Monthly)",
-        "monthly_profit": "Monthly Net Profit"
+        "monthly_profit": "Monthly Net Profit",
+        "download_excel": "Download Results as Excel"
     },
     "中文": {
         "title": "投资房产盈亏模型",
@@ -67,6 +71,7 @@ text = {
         "utilisation_rate": "入住率（%）",
         "mgmt_fee": "Airbnb 管理费（每月MYR）",
         "results": "结果展示",
+        "calculate": "点击计算",
         "net_net_price": "净净价格",
         "max_loan": "最大贷款金额 (70%)",
         "cash_deposit": "贷款后现金支付",
@@ -74,33 +79,22 @@ text = {
         "total_cash_required": "总现金需求（包括所有费用）",
         "gross_rent": "每月毛租金收入",
         "net_rent": "每月净租金收入",
-        "monthly_profit": "每月净盈利"
+        "monthly_profit": "每月净盈利",
+        "download_excel": "下载结果为Excel"
     }
 }
 
 t = text[language]
 
-# --- 应用标题 ---
+# --- App Title ---
 st.title(t["title"])
 
-# Optional: remove Streamlit's top padding for mobile
-st.markdown(
-    """
-    <style>
-    .block-container {
-        padding-top: 1rem;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# --- 货币与汇率设置 ---
+# --- Currency & FX Settings ---
 st.subheader(t["currency_section"])
 manual_fx = st.checkbox(t["manual_fx"])
 
 if manual_fx:
-    fx_rate = st.number_input(t["enter_fx"], value=2.5655, format="%.4f", step=0.0001, help="Enter manual FX rate", key="manual_fx",  use_container_width=True)
+    fx_rate = st.number_input(t["enter_fx"], value=2.5655, format="%.4f", step=0.0001, help="Enter manual FX rate", key="manual_fx", use_container_width=True)
 else:
     try:
         res = requests.get("https://api.exchangerate.host/latest?base=MYR&symbols=NZD")
@@ -110,7 +104,7 @@ else:
         fx_rate = 2.5655
         st.warning("Failed to fetch live FX. Default 2.5655 used.")
 
-# --- 房产与贷款详情 ---
+# --- Property & Loan Details ---
 st.subheader(t["property_section"])
 spa = st.number_input(t["spa_price"], value=1594000.00, step=10000.0, use_container_width=True)
 discount1 = st.number_input(t["discount1"], value=10.0, step=0.1, use_container_width=True) / 100
@@ -121,17 +115,8 @@ loan_ratio = st.number_input(t["loan_ratio"], value=70.0, step=1.0, use_containe
 interest_rate = st.number_input(t["interest_rate"], value=4.30, step=0.01, use_container_width=True) / 100
 loan_term_years = st.number_input(t["loan_term"], value=26, step=1, use_container_width=True)
 
-# --- 价格计算 ---
-after_dis1 = spa * (1 - discount1)
-after_dis2 = after_dis1 * (1 - discount2)
-net_net_price = after_dis2 - red_env_dis3
-max_loan_amount = net_net_price * loan_ratio
-balance_to_pay = net_net_price - deposit_paid
-cash_deposit = balance_to_pay - max_loan_amount
-
-# --- 前期费用 ---
+# --- Upfront Costs ---
 st.subheader(t["upfront_fees"])
-# Stamp duty pre-calculate
 default_stamp_duty = spa * 0.005
 stamp_duty = st.number_input(t["stamp_duty"], value=default_stamp_duty, step=100.0, use_container_width=True)
 consent_fee = st.number_input(t["consent_fee"], value=1000.00, step=100.0, use_container_width=True)
@@ -140,25 +125,63 @@ min_bank_balance = st.number_input(t["min_bank_balance"], value=40000.00, step=1
 cushion = st.number_input(t["cushion"], value=40000.00, step=1000.0, use_container_width=True)
 renovation = st.number_input(t["renovation"], value=20000.00, step=1000.0, use_container_width=True)
 
-total_cash_required = cash_deposit + stamp_duty + consent_fee + legal_fees + min_bank_balance + cushion + renovation
-
-# --- 租金收入估算 ---
+# --- Rental Income Estimation ---
 st.subheader(t["rental_income"])
 airbnb_rate = st.number_input(t["airbnb_rate"], value=400.00, step=10.0, use_container_width=True)
 utilisation_rate = st.number_input(t["utilisation_rate"], value=75.0, step=1.0, use_container_width=True) / 100
 mgmt_fee = st.number_input(t["mgmt_fee"], value=800.00, step=50.0, use_container_width=True)
 
-gross_rental_monthly = airbnb_rate * 30 * utilisation_rate
-net_income_monthly = gross_rental_monthly - mgmt_fee
-monthly_profit = net_income_monthly - monthly_repayment
+# --- Calculate Button ---
+if st.button(t["calculate"]):
+    with st.spinner('Calculating...'):
+        # --- Price and Loan Calculation ---
+        after_dis1 = spa * (1 - discount1)
+        after_dis2 = after_dis1 * (1 - discount2)
+        net_net_price = after_dis2 - red_env_dis3
+        max_loan_amount = net_net_price * loan_ratio
+        balance_to_pay = net_net_price - deposit_paid
+        cash_deposit = balance_to_pay - max_loan_amount
 
-# --- 输出结果 ---
-st.subheader(t["results"])
-st.write(f"**{t['net_net_price']}:** MYR {net_net_price:,.2f} / NZD {net_net_price / fx_rate:,.2f}")
-st.write(f"**{t['max_loan']}:** MYR {max_loan_amount:,.2f} / NZD {max_loan_amount / fx_rate:,.2f}")
-st.write(f"**{t['cash_deposit']}:** MYR {cash_deposit:,.2f} / NZD {cash_deposit / fx_rate:,.2f}")
-st.write(f"**{t['monthly_repayment']}:** MYR {monthly_repayment:,.2f}")
-st.write(f"**{t['total_cash_required']}:** MYR {total_cash_required:,.2f} / NZD {total_cash_required / fx_rate:,.2f}")
-st.write(f"**{t['gross_rent']}:** MYR {gross_rental_monthly:,.2f}")
-st.write(f"**{t['net_rent']}:** MYR {net_income_monthly:,.2f}")
-st.write(f"**{t['monthly_profit']}:** MYR {monthly_profit:,.2f}")
+        monthly_interest = interest_rate / 12
+        number_of_payments = loan_term_years * 12
+        if monthly_interest != 0:
+            monthly_repayment = max_loan_amount * (monthly_interest * (1 + monthly_interest) ** number_of_payments) / ((1 + monthly_interest) ** number_of_payments - 1)
+        else:
+            monthly_repayment = max_loan_amount / number_of_payments
+
+        total_cash_required = cash_deposit + stamp_duty + consent_fee + legal_fees + min_bank_balance + cushion + renovation
+
+        gross_rental_monthly = airbnb_rate * 30 * utilisation_rate
+        net_income_monthly = gross_rental_monthly - mgmt_fee
+        monthly_profit = net_income_monthly - monthly_repayment
+
+        # --- Results Display ---
+        st.subheader(t["results"])
+        st.write(f"**{t['net_net_price']}:** MYR {net_net_price:,.2f} / NZD {net_net_price / fx_rate:,.2f}")
+        st.write(f"**{t['max_loan']}:** MYR {max_loan_amount:,.2f} / NZD {max_loan_amount / fx_rate:,.2f}")
+        st.write(f"**{t['cash_deposit']}:** MYR {cash_deposit:,.2f} / NZD {cash_deposit / fx_rate:,.2f}")
+        st.write(f"**{t['monthly_repayment']}:** MYR {monthly_repayment:,.2f}")
+        st.write(f"**{t['total_cash_required']}:** MYR {total_cash_required:,.2f} / NZD {total_cash_required / fx_rate:,.2f}")
+        st.write(f"**{t['gross_rent']}:** MYR {gross_rental_monthly:,.2f}")
+        st.write(f"**{t['net_rent']}:** MYR {net_income_monthly:,.2f}")
+        st.write(f"**{t['monthly_profit']}:** MYR {monthly_profit:,.2f}")
+
+        # --- Create Excel for download ---
+        output = BytesIO()
+        writer = pd.ExcelWriter(output, engine='xlsxwriter')
+        df = pd.DataFrame({
+            "Item": [t['net_net_price'], t['max_loan'], t['cash_deposit'], t['monthly_repayment'],
+                     t['total_cash_required'], t['gross_rent'], t['net_rent'], t['monthly_profit']],
+            "Amount (MYR)": [net_net_price, max_loan_amount, cash_deposit, monthly_repayment,
+                             total_cash_required, gross_rental_monthly, net_income_monthly, monthly_profit]
+        })
+        df.to_excel(writer, index=False, sheet_name="Results")
+        writer.save()
+        output.seek(0)
+
+        st.download_button(
+            label=t["download_excel"],
+            data=output,
+            file_name="property_investment_model.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
