@@ -21,12 +21,14 @@ translations = {
         "legal": "Legal Fee (MYR)",
         "min_bal": "Minimum Bank Balance (MYR)",
         "cushion": "Cash Cushion (MYR)",
-        "renov": "Renovation (MYR)",
+        "renov": "Renovation Cost (MYR)",
         "rate": "Expected Rental Rate (MYR/day)",
         "util": "Occupancy Rate (%)",
         "mgmt": "Management Fees (MYR/month)",
         "currency_section": "Currency Exchange Settings",
+        "foreign_currency": "Foreign Currency Code (e.g., NZD, SGD)",
         "manual_fx": "Manual FX Override",
+        "fx_rate": "Exchange Rate (Foreign Currency → MYR)",
         "calculate": "Calculate",
         "results": "Calculation Results",
         "net_net_price": "Net Net Property Price",
@@ -38,7 +40,9 @@ translations = {
         "net_rent": "Net Rental Income (Monthly)",
         "monthly_profit": "Monthly Profit / Loss",
         "download_excel": "Download Results as CSV",
-        "in_foreign_currency": "(in foreign currency)"
+        "in_foreign_currency": "(in foreign currency)",
+        "processing": "Processing inputs, please wait...",
+        "api_error": "FX API Error, using default rate"
     },
     "zh": {
         "title": "房产投资计算器",
@@ -47,42 +51,48 @@ translations = {
         "discount1": "折扣 1 (%)",
         "discount2": "折扣 2 (%)",
         "discount3": "折扣 3 (MYR)",
-        "deposit_paid": "已付订金 (MYR)",
+        "deposit_paid": "已支付订金 (MYR)",
         "loan_ratio": "贷款比例 (%)",
         "interest": "利率 (%)",
-        "years": "贷款年限 (年)",
-        "stamp_duty": "印花税及法律费用 (SPA 的 0.5%，可编辑)",
+        "years": "贷款期限 (年)",
+        "stamp_duty": "印花税及其他法律费用 (SPA 的 0.5%，可修改)",
         "consent": "同意费 (MYR)",
         "legal": "法律费用 (MYR)",
-        "min_bal": "最低银行余额 (MYR)",
-        "cushion": "现金缓冲 (MYR)",
-        "renov": "装修费 (MYR)",
+        "min_bal": "最低银行余额要求 (MYR)",
+        "cushion": "额外现金储备 (MYR)",
+        "renov": "装修费用 (MYR)",
         "rate": "预计租金 (MYR/天)",
         "util": "入住率 (%)",
         "mgmt": "管理费 (MYR/月)",
         "currency_section": "汇率设置",
-        "manual_fx": "手动汇率覆盖",
-        "calculate": "计算",
+        "foreign_currency": "外币代码 (例如 NZD, SGD)",
+        "manual_fx": "手动输入汇率",
+        "fx_rate": "外币兑换 MYR 汇率",
+        "calculate": "开始计算",
         "results": "计算结果",
         "net_net_price": "净房价",
-        "max_loan": "最高贷款额度",
-        "cash_deposit": "需付现金",
-        "monthly_repayment": "每月贷款还款",
-        "total_cash_required": "所需总现金",
-        "gross_rent": "月租金收入 (总额)",
-        "net_rent": "月租金收入 (净额)",
+        "max_loan": "最高贷款额",
+        "cash_deposit": "需支付现金",
+        "monthly_repayment": "每月贷款还款额",
+        "total_cash_required": "总现金需求",
+        "gross_rent": "租金总收入 (月)",
+        "net_rent": "租金净收入 (月)",
         "monthly_profit": "每月盈亏",
-        "download_excel": "下载结果 (CSV)",
-        "in_foreign_currency": "（以外币计）"
+        "download_excel": "下载结果 (CSV 文件)",
+        "in_foreign_currency": "（以外币计）",
+        "processing": "正在处理，请稍候...",
+        "api_error": "汇率接口出错，使用默认汇率"
     }
 }
 
-# Language selection
+# Sidebar language selection
 lang = st.sidebar.selectbox("Select Language / 选择语言", ["en", "zh"])
 t = translations[lang]
 
+# App title
 st.title(t["title"])
 
+# Input fields
 spa_price = st.number_input(t["spa_price"], value=800000.0)
 discount1 = st.number_input(t["discount1"], value=10.0)
 discount2 = st.number_input(t["discount2"], value=5.0)
@@ -102,28 +112,30 @@ rate = st.number_input(t["rate"], value=300.0)
 util = st.number_input(t["util"], value=70.0)
 mgmt = st.number_input(t["mgmt"], value=500.0)
 
-# FX Section
+# Currency section
 with st.expander(t["currency_section"], expanded=True):
-    foreign_currency = st.text_input("Foreign Currency Code (e.g., NZD, SGD)", value="NZD")
+    foreign_currency = st.text_input(t["foreign_currency"], value="NZD")
     manual_fx = st.checkbox(t["manual_fx"])
     if manual_fx:
-        fx_rate = st.number_input(f"{foreign_currency} to MYR Exchange Rate", value=3.25)
+        fx_rate = st.number_input(t["fx_rate"], value=3.25)
     else:
         try:
             res = requests.get(f"https://api.exchangerate.host/latest?base={foreign_currency}&symbols=MYR")
             fx_rate = res.json()["rates"]["MYR"]
         except:
-            st.error("FX API Error, using default rate")
+            st.error(t["api_error"])
             fx_rate = 3.25
 
+# Calculate button
 if st.button(t["calculate"]):
-    progress_text = "Processing inputs, please wait..."
+    progress_text = t["processing"]
     my_bar = st.progress(0, text=progress_text)
     for percent_complete in range(100):
         time.sleep(0.005)
         my_bar.progress(percent_complete + 1, text=progress_text)
     my_bar.empty()
 
+    # Financial calculations
     net_price = spa_price * (1 - discount1/100) * (1 - discount2/100) - discount3
     max_loan = net_price * loan_ratio / 100
     cash_deposit = net_price - max_loan - deposit_paid
@@ -131,11 +143,12 @@ if st.button(t["calculate"]):
     r = interest / 100 / 12
     n = years * 12
     monthly_repay = loan_amt * r * (1 + r)**n / ((1 + r)**n - 1)
-    total_cash = (cash_deposit + stamp_duty + consent + legal + min_bal + cushion + renov)
+    total_cash = cash_deposit + stamp_duty + consent + legal + min_bal + cushion + renov
     gross_rent = rate * (util / 100) * 30
     net_rent = gross_rent - mgmt
     profit = net_rent - monthly_repay
 
+    # Display results
     st.subheader(t["results"])
     st.metric(t["net_net_price"], f"{net_price:,.2f} MYR ({net_price/fx_rate:,.2f} {foreign_currency})")
     st.metric(t["max_loan"], f"{max_loan:,.2f} MYR ({max_loan/fx_rate:,.2f} {foreign_currency})")
@@ -146,6 +159,7 @@ if st.button(t["calculate"]):
     st.metric(t["net_rent"], f"{net_rent:,.2f} MYR ({net_rent/fx_rate:,.2f} {foreign_currency})")
     st.metric(t["monthly_profit"], f"{profit:,.2f} MYR ({profit/fx_rate:,.2f} {foreign_currency})")
 
+    # CSV Export
     df = pd.DataFrame({
         "Category": [
             t["net_net_price"], t["max_loan"], t["cash_deposit"],
@@ -162,5 +176,4 @@ if st.button(t["calculate"]):
             gross_rent/fx_rate, net_rent/fx_rate, profit/fx_rate
         ]
     })
-
     st.download_button(t["download_excel"], df.to_csv(index=False), "results.csv")
