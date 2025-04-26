@@ -235,7 +235,7 @@ with col2:
         net_net_price = net_price - discount3
         
         # Loan calculations
-        max_loan = net_net_price * loan_ratio / 100
+        max_loan = spa_price * loan_ratio / 100
         cash_deposit = net_net_price - max_loan - deposit_paid
         balance = net_net_price - deposit_paid
         
