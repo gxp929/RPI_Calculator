@@ -550,8 +550,37 @@ with col2:
                 
                 st.plotly_chart(fig_gauge, use_container_width=True)
 
-        # CSV Export - Fixed and completed section
-        csv_data = {
-            "Metric": [
+         # CSV Export
+        df = pd.DataFrame({
+            "Category": [
                 t["spa_price"], t["discount1"], t["discount2"], t["discount3"],
-                t["deposit_paid"], t["loan_
+                t["deposit_paid"], t["loan_ratio"], t["interest"], t["years"],
+                t["property_size"], t["monthly_service_fee"], t["property_fee"],
+                t["net_price"], t["net_net_price"], t["max_loan"],
+                t["cash_deposit"], t["monthly_repayment"], t["total_cash_required"],
+                t["gross_rent"], t["net_rent"], t["monthly_profit"]
+            ],
+            "MYR Amount": [
+                spa_price, f"{discount1}%", f"{discount2}%", discount3,
+                deposit_paid, f"{loan_ratio}%", f"{interest}%", years,
+                property_size, monthly_service_fee_per_sqf, property_fee,
+                net_price, net_net_price, max_loan,
+                cash_deposit, monthly_repay, total_cash,
+                gross_rent, net_rent, profit
+            ],
+            f"{foreign_currency} Amount": [
+                spa_price/fx_rate, f"{discount1}%", f"{discount2}%", discount3/fx_rate,
+                deposit_paid/fx_rate, f"{loan_ratio}%", f"{interest}%", years,
+                property_size, monthly_service_fee_per_sqf, property_fee/fx_rate,
+                net_price/fx_rate, net_net_price/fx_rate, max_loan/fx_rate,
+                cash_deposit/fx_rate, monthly_repay/fx_rate, total_cash/fx_rate,
+                gross_rent/fx_rate, net_rent/fx_rate, profit/fx_rate
+            ]
+        })
+
+        st.download_button(
+            t["download_excel"],
+            df.to_csv(index=False),
+            "property_investment_results.csv",
+            mime="text/csv"
+        )
