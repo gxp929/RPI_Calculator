@@ -555,32 +555,37 @@ with col2:
             "Category": [
                 t["spa_price"], t["discount1"], t["discount2"], t["discount3"],
                 t["deposit_paid"], t["loan_ratio"], t["interest"], t["years"],
-                t["property_size"], t["monthly_service_fee"], t["property_fee"],
-                t["net_price"], t["net_net_price"], t["max_loan"],
-                t["cash_deposit"], t["monthly_repayment"], t["total_cash_required"],
-                t["gross_rent"], t["net_rent"], t["monthly_profit"]
+                t["net_price"], t["net_net_price"], t["max_loan"], t["cash_deposit"],
+                t["monthly_repayment"], t["total_cash_required"], t["gross_rent"],
+                t["net_rent"], t["monthly_profit"]
             ],
-            "MYR Amount": [
-                spa_price, f"{discount1}%", f"{discount2}%", discount3,
-                deposit_paid, f"{loan_ratio}%", f"{interest}%", years,
-                property_size, monthly_service_fee_per_sqf, property_fee,
-                net_price, net_net_price, max_loan,
-                cash_deposit, monthly_repay, total_cash,
-                gross_rent, net_rent, profit
+            "Value (MYR)": [
+                spa_price, discount1, discount2, discount3,
+                deposit_paid, loan_ratio, interest, years,
+                net_price, net_net_price, max_loan, cash_deposit,
+                monthly_repay, total_cash, gross_rent,
+                net_rent, profit
             ],
-            f"{foreign_currency} Amount": [
-                spa_price/fx_rate, f"{discount1}%", f"{discount2}%", discount3/fx_rate,
-                deposit_paid/fx_rate, f"{loan_ratio}%", f"{interest}%", years,
-                property_size, monthly_service_fee_per_sqf, property_fee/fx_rate,
-                net_price/fx_rate, net_net_price/fx_rate, max_loan/fx_rate,
-                cash_deposit/fx_rate, monthly_repay/fx_rate, total_cash/fx_rate,
-                gross_rent/fx_rate, net_rent/fx_rate, profit/fx_rate
+            f"Value ({foreign_currency})": [
+                spa_price/fx_rate, discount1, discount2, discount3/fx_rate,
+                deposit_paid/fx_rate, loan_ratio, interest, years,
+                net_price/fx_rate, net_net_price/fx_rate, max_loan/fx_rate, cash_deposit/fx_rate,
+                monthly_repay/fx_rate, total_cash/fx_rate, gross_rent/fx_rate,
+                net_rent/fx_rate, profit/fx_rate
             ]
         })
-
+        
+        # Generate CSV
+        csv = df.to_csv(index=False)
+        
+        # Create download button for CSV export
         st.download_button(
-            t["download_excel"],
-            df.to_csv(index=False),
-            "property_investment_results.csv",
-            mime="text/csv"
+            label=t["download_excel"],
+            data=csv,
+            file_name="property_calculation_results.csv",
+            mime="text/csv",
         )
+
+if __name__ == "__main__":
+    # This is useful for debugging
+    pass
